@@ -65,3 +65,51 @@ void TimestampColumnVector::set(int elementNum, long ts) {
     times[elementNum] = ts;
     // TODO: isNull
 }
+
+void TimestampColumnVector::add(std::string &value) {
+    std::transform(value.begin(), value.end(), value.begin(), ::tolower);
+    if (value == "true") {
+        add(1);
+    } else if (value == "false") {
+        add(0);
+    } else {
+        add(std::stol(value));
+    }
+}
+
+void TimestampColumnVector::add(bool value) {
+    add(value ? 1 : 0);
+}
+
+void TimestampColumnVector::add(int64_t value) {
+    if (writeIndex >= length) {
+        ensureSize(writeIndex * 2, true);
+    }
+    int index = writeIndex++;
+    set(index, value);
+    isNull[index] = false;
+}
+
+void TimestampColumnVector::add(int value) {
+    if (writeIndex >= length) {
+        ensureSize(writeIndex * 2, true);
+    }
+    int index = writeIndex++;
+    set(index, value);
+    isNull[index] = false;
+}
+
+void LongColumnVector::ensureSize(uint64_t size, bool preserveData) {
+    ColumnVector::ensureSize(size, preserveData);
+    if (length < size) {
+            long *oldVector = times;
+            posix_memalign(reinterpret_cast<void **>(&times), 32,
+                           size * sizeof(int64_t));
+            if (preserveData) {
+                std::copy(oldVector, oldVector + length, times);
+            }
+            delete[] oldVector;
+            memoryUsage += (long) sizeof(long) * (size - length);
+            resize(size);
+    }
+}

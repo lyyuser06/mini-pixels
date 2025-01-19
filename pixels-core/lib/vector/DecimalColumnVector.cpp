@@ -95,3 +95,55 @@ int DecimalColumnVector::getPrecision() {
 int DecimalColumnVector::getScale() {
 	return scale;
 }
+
+
+void DecimalColumnVector::add(std::string &value) 
+{
+    std::transform(value.begin(), value.end(), value.begin(), ::tolower);
+    if (value == "true") 
+        add(1);
+    else if (value == "false") 
+        add(0);
+    else 
+    {   
+        int num = std::stol(value);
+        add(num);
+    }
+}
+
+void DecimalColumnVector::add(bool value)
+{
+    add(value ? 1 : 0);
+}
+
+void DecimalColumnVector::add(int64_t value) 
+{
+    int num = static_cast<int>(value);
+    add(value);
+}
+
+void DecimalColumnVector::add(int value) 
+{
+    if (writeIndex >= length)
+    	ensureSize(writeIndex * 2, true);
+  	int index = writeIndex++;
+  	if (scale > 0) 
+            num *= std::pow(10, scale);
+  	isNull[index] = false;
+}
+
+void DecimalColumnVector::ensureSize(uint64_t size, bool preserveData) 
+{
+    ColumnVector::ensureSize(size, preserveData);
+  	if (length < size) 
+	{
+      	int *oldVector = vector;
+      	posix_memalign(reinterpret_cast<void **>(&vector), 32,
+                    size * sizeof(int));
+      	if (preserveData)
+        	std::copy(oldVector, oldVector + length, vector);
+		delete[] oldVector;
+		memoryUsage += (long)sizeof(int) * (size - length);
+		resize(size);
+  	}
+}

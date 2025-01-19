@@ -58,3 +58,48 @@ void * DateColumnVector::current() {
         return dates + readIndex;
     }
 }
+
+void DateColumnVector::add(int value) {
+  	if (writeIndex >= length)
+    	ensureSize(writeIndex * 2, true);
+  	int index = writeIndex++;
+  	set(index, value);
+  	isNull[index] = false;
+}
+
+void DateColumnVector::add(bool value) {
+    add(value ? 1 : 0);
+}
+
+void DateColumnVector::add(std::string &value) {
+  	if (writeIndex >= length) 
+    	ensureSize(writeIndex * 2, true);
+  	int index = writeIndex++;
+  	int date = std::stoi(value);
+  	set(index, date);
+  	isNull[index] = false;
+}
+
+void DateColumnVector::add(int64_t value) {
+  	if (writeIndex >= length)
+    	ensureSize(writeIndex * 2, true);
+  	int index = writeIndex++;
+  	set(index, value);
+  	isNull[index] = false;
+}
+
+
+void DateColumnVector::ensureSize(uint64_t size, bool preserveData) {
+  	ColumnVector::ensureSize(size, preserveData);
+  	if (length < size) 
+	{
+      	int *oldVector = dates;
+      	posix_memalign(reinterpret_cast<void **>(&dates), 32,
+                    size * sizeof(int));
+      	if (preserveData)
+        	std::copy(oldVector, oldVector + length, dates);
+		delete[] oldVector;
+		memoryUsage += (long)sizeof(int) * (size - length);
+		resize(size);
+  	}
+}
